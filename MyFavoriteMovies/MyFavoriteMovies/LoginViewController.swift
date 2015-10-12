@@ -120,6 +120,9 @@ class LoginViewController: UIViewController {
             
             /* GUARD: Was there an error? */
             guard (error == nil) else {
+                dispatch_async(dispatch_get_main_queue()) {
+                    self.debugTextLabel.text = "Login failed. (Request token)."
+                }
                 print("getRequestToken: Print an error message")
                 return
             }
@@ -143,10 +146,27 @@ class LoginViewController: UIViewController {
             }
             
             /* 5. Parse the data */
-            print("getRequestToken: Parse the data \(data)")
+            let parsedData : AnyObject!
+            do {
+                parsedData = try NSJSONSerialization.JSONObjectWithData(data, options: .AllowFragments) as! NSDictionary
+            } catch {
+                parsedData = nil
+                self.debugTextLabel.text = "Login failed. (Request token)."
+                print("Could not parse the data as JSNO: '\(data)'")
+                return
+            }
+            
+            
+            /* GUARD: Did the call response include the request token? */
+            guard let requestToken = parsedData["request_token"] as? String else {
+                print("Cannot find keys 'request_token' in \(parsedData)")
+                return
+            }
             
             /* 6. Use the data! */
-            print("getRequestToken: Use the data")
+            self.appDelegate.requestToken = requestToken
+            print("This is the request token \(requestToken)")
+            
         }
         
         /* 7. Start the request */
