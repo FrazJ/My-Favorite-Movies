@@ -309,6 +309,8 @@ class LoginViewController: UIViewController {
                 self.debugTextLabel.text = "Login failed. (Getting session ID)."
                 return
             }
+            
+            self.appDelegate.sessionID = sessionId
             print("This is your session_id \(sessionId)")
 
         }
