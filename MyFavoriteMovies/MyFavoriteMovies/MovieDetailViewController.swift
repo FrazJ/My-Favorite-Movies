@@ -49,11 +49,11 @@ class MovieDetailViewController: UIViewController {
         ]
         
         /* 2A. Build the URL */
-        let urlString = appDelegate.baseURLSecureString + "/account/{id}/favorite/movies" + appDelegate.escapedParameters(methodArguments)
-        let url = NSURL(string: urlString)
+        let urlString = appDelegate.baseURLSecureString + "account/" + "\(appDelegate.userID)" + "/favorite/movies" + appDelegate.escapedParameters(methodArguments)
+        let url = NSURL(string: urlString)!
         
         /* 3A. Configure the request */
-        let request = NSMutableURLRequest(URL: url!)
+        let request = NSMutableURLRequest(URL: url)
         request.addValue("application/json", forHTTPHeaderField: "Accept")
         
         /* 4A. Make the request */
@@ -101,15 +101,22 @@ class MovieDetailViewController: UIViewController {
                 return
             }
             
-            self.appDelegate.sessionID = sessionId
-            print("This is your session_id \(sessionId)")
-            self.getUserID(self.appDelegate.sessionID!)
-        
+            let moviesDictionary = Movie.moviesFromResults(results)
+            
+            dispatch_async(dispatch_get_main_queue(), {
+                for aMovie in moviesDictionary {
+                    if aMovie.title == self.movie!.title {
+                        self.unFavoriteButton.hidden = false
+                        self.favoriteButton.hidden = true
+                    } else {
+                        self.unFavoriteButton.hidden = true
+                        self.favoriteButton.hidden = false
+                    }
+                }
+            })
         }
         
-        
         /* 7A. Start the request */
-        
         task.resume()
         
         /* TASK B: Get the poster image, then populate the image view */
