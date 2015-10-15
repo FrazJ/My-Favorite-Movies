@@ -41,7 +41,7 @@ class MovieDetailViewController: UIViewController {
         
         super.viewWillAppear(animated)
         
-        if let movie = self.movie {
+        if let movie = movie {
             
             titleLabel.text = movie.title
             unFavoriteButton.hidden = true
@@ -106,17 +106,23 @@ class MovieDetailViewController: UIViewController {
                     return
                 }
                 
+                var isFavourite = false
                 let moviesDictionary = Movie.moviesFromResults(results)
                 
+                for movie in moviesDictionary {
+                    if movie.id == self.movie!.id {
+                       isFavourite = true
+                    }
+                }
+
+                
                 dispatch_async(dispatch_get_main_queue(), {
-                    for movie in moviesDictionary {
-                        if movie.id == self.movie!.id {
-                            self.unFavoriteButton.hidden = false
-                            self.favoriteButton.hidden = true
-                        } else {
-                            self.unFavoriteButton.hidden = true
-                            self.favoriteButton.hidden = false
-                        }
+                    if isFavourite {
+                        self.favoriteButton.hidden = true
+                        self.unFavoriteButton.hidden = false
+                    } else {
+                        self.favoriteButton.hidden = false
+                        self.unFavoriteButton.hidden = true
                     }
                 })
             }
@@ -189,14 +195,81 @@ class MovieDetailViewController: UIViewController {
     
     @IBAction func unFavoriteButtonTouchUpInside(sender: AnyObject) {
         
-        /* TASK: Remove movie as favorite, then update favorite buttons */
-        /* 1. Set the parameters */
-        /* 2. Build the URL */
-        /* 3. Configure the request */
-        /* 4. Make the request */
-        /* 5. Parse the data */
-        /* 6. Use the data! */
-        /* 7. Start the request */
+        if let movie = movie {
+            
+            /* TASK: Remove movie as favorite, then update favorite buttons */
+            /* 1. Set the parameters */
+            let methodArguments = [
+                "api_key" : appDelegate.apiKey,
+                "session_id" : appDelegate.sessionID!
+            ]
+            
+            /* 2. Build the URL */
+            let urlString = appDelegate.baseURLSecureString + "account/" + "\(movie.id)" + "/favorite" + appDelegate.escapedParameters(methodArguments)
+            let url = NSURL(string: urlString)!
+            
+            /* 3. Configure the request */
+            let request = NSMutableURLRequest(URL: url)
+            request.HTTPMethod = "POST"
+            request.addValue("application/json", forHTTPHeaderField: "Accept")
+            request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.HTTPBody = "{\n \"media_type\": \"movie\",\n \"media_id\": \(movie.id),\n \"favorite\": false\n}".dataUsingEncoding(NSUTF8StringEncoding);
+            
+            /* 4. Make the request */
+            let task = session.dataTaskWithRequest(request){data, response, error in
+                
+                /* GUARD: Was there an error? */
+                guard error == nil else {
+                    dispatch_async(dispatch_get_main_queue()) {
+                        print("Failed to get list of favourite movies")
+                    }
+                    return
+                }
+                
+                /* GUARD: Did we get a successful 2XX response? */
+                guard let statusCode = (response as? NSHTTPURLResponse)?.statusCode where statusCode >= 200 && statusCode <= 299 else {
+                    if let response = response as? NSHTTPURLResponse {
+                        print("Your request returned an invalid response. Status code: \(response.statusCode)!")
+                    } else if let response = response {
+                        print("Your request returned an invalid response: \(response)!")
+                    } else {
+                        print("Your request returned an invalid response!")
+                    }
+                    return
+                }
+                
+                /* GUARD: Was any data returned? */
+                guard let data = data else {
+                    print("No data was returned by the request!")
+                    return
+                }
+                
+                /* 5. Parse the data */
+                var parsedData : AnyObject!
+                do {
+                    parsedData = try NSJSONSerialization.JSONObjectWithData(data, options: .AllowFragments) as! NSDictionary
+                } catch {
+                    parsedData = nil
+                    print("The data could not be parsed as JSON. \(data)")
+                    return
+                }
+                
+                /* 6. Use the data! */
+                guard let sCode = parsedData["status_code"] as? Int else {
+                    print("Cannot find keys 'status_code' in \(parsedData) ")
+                    return
+                }
+                
+                dispatch_async(dispatch_get_main_queue(), {
+                    self.unFavoriteButton.hidden = true
+                    self.favoriteButton.hidden = false
+                })
+            }
+            
+            /* 7. Start the request */
+            task.resume()
+        }
+        
     }
     
     @IBAction func favoriteButtonTouchUpInside(sender: AnyObject) {
