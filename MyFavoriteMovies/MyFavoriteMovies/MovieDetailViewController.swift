@@ -341,7 +341,7 @@ class MovieDetailViewController: UIViewController {
                     return
                 }
                 
-                if sCode == 1 {
+                if sCode == 1 || sCode == 12 {
                     dispatch_async(dispatch_get_main_queue(), {
                         self.unFavoriteButton.hidden = false
                         self.favoriteButton.hidden = true
